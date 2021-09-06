@@ -31,14 +31,15 @@ def trainer(train, model, optimizer, lossfunc):
                 images, labels = images.to(device), labels.to(device)
 
                 optimizer.zero_grad()
-                outputs, out = model(images)
+                outputs = model(images)
                 loss = lossfunc(outputs, labels)
                 loss.backward()
                 optimizer.step()
                 train_loss += loss.item()
-                out_list.append(out)
+        print("outputs : ", outputs)
+        print("labels : ", labels)
 
-        return train_loss, out_list
+        return train_loss
 
     except ValueError:
         pass
@@ -52,20 +53,21 @@ def validater(test, model):
         valid_loss = 0.0
         with tqdm(testloader, ncols=100) as pbar:
             for images, labels in pbar:
+                images, labels = Variable(images), Variable(labels)
                 images, labels = images.to(device), labels.to(device)
 
-                outputs, out = model(images)
+                outputs = model(images)
                 loss = lossfunc(outputs, labels)
                 valid_loss += loss.item()
 
-        return valid_loss, out
+        return valid_loss
 
     except ValueError:
         pass
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Process some integers.")
-    parser.add_argument("--network", type=string, required=True,
+    parser.add_argument("--network", required=True,
                         help="choose network, only ResNet50 or ResNet50LSTM")
     parser.add_argument("--input_ch", type=int, required=True,
                         help="the number of input channel")
@@ -82,6 +84,8 @@ if __name__ == '__main__':
     # split train and validation dataset and set up model
     train_size = int(round(datas.length * 0.8))
     test_size = datas.length - train_size
+    print("train size : ", train_size)
+    print("test_size  : ", test_size)
     if args.network == "ResNet50":
         train, test = torch.utils.data.random_split(datas, [train_size, test_size])
         model = model.ResNet50(pretrained=True, num_input_channel=args.input_ch,
@@ -109,12 +113,12 @@ if __name__ == '__main__':
     for epoch in range(100):
         try:
             # train
-            train_loss, out_list = trainer(train, model, optimizer, lossfunc)
+            train_loss = trainer(train, model, optimizer, lossfunc)
             loss_list.append(train_loss)
 
             # test
             with torch.no_grad():
-                valid_loss, out = validater(test, model)
+                valid_loss = validater(test, model)
 
             # show loss and accuracy
             print("%d : train_loss : %.3f" % (epoch + 1, train_loss))
