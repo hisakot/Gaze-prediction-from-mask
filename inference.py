@@ -91,10 +91,11 @@ if __name__ == '__main__':
             # inference
             output = forward(model, device, hand_path)
             output = output.cpu().numpy()
+            print(output, output / np.array([320, 180]))
 
             # save inferenced gaze as txt
             with open (common.INF_GAZE_CSV, "a") as f:
-                np.savetxt(f, output / np.array([common.INF_W, common.INF_H]), delimiter=",")
+                np.savetxt(f, output / np.array([common.IMG_W, common.IMG_H]), delimiter=",")
 
     print("========== save images ==========")
     blend.make_images(common.TEST_ORG_IMG, common.TEST_HAND_IMG, common.TEST_GAZE_CSV, common.INF_GAZE_CSV, common.RESULT_DIR)
