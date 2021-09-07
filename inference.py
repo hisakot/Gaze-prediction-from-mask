@@ -91,7 +91,6 @@ if __name__ == '__main__':
             # inference
             output = forward(model, device, hand_path)
             output = output.cpu().numpy()
-            print(output, output / np.array([320, 180]))
 
             # save inferenced gaze as txt
             with open (common.INF_GAZE_CSV, "a") as f:
