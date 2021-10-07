@@ -24,7 +24,7 @@ TEST_TOOL_IMG = "../main20170707/tool_masks/*.png"
 TEST_CUT_IMG = "../main20170707/cutting_area/*.png"
 
 TEST_GAZE_CSV = "../main20170707/gaze.csv"
-INF_GAZE_CSV = "../main20170707/inf_gaze.csv"
+INF_GAZE_CSV = "../main20170707/inf_gaze_from_hand_tool_cutting_area_3ch_resnet18lstm_new10.csv"
 
 RESULT_DIR = "../main20170707/result/"
 

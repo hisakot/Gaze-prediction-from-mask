@@ -11,45 +11,41 @@ import blend
 import model
 
 
-def forward(model, device, org_paths, i):
-    image_list = list()
-    for j in range(10):
-        # load hand image
-        hand_path = org_paths[i+j].replace("org_imgs", "contour")
-        hand_img = cv2.imread(hand_path)
-        hand_img = cv2.resize(hand_img, (common.IMG_W, common.IMG_H))
-        hand_img = hand_img[:, :, 0] #(h, w)
-        hand_img = hand_img[:, :, np.newaxis] # (h, w, 1ch)
-    
-        # load tool image
-        tool_path = org_paths[i+j].replace("org_imgs", "tool_masks")
-        tool_img = cv2.imread(tool_path)
-        tool_img = cv2.resize(tool_img, (common.IMG_W, common.IMG_H))
-        tool_img = tool_img[:, :, 1] # (h, w)
-        tool_img = tool_img[:, :, np.newaxis] # (h, w, 1ch)
-    
-        # load cutting_area image
-        cutting_path = org_paths[i+j].replace("org_imgs", "cutting_area")
-        cutting_img = cv2.imread(cutting_path)
-        cutting_img = cv2.resize(cutting_img, (common.IMG_W, common.IMG_H))
-        cutting_img = cutting_img[:, :, 0] # (h, w)
-        cutting_img = cutting_img[:, :, np.newaxis] # (h, w, 1ch)
-    
-        # concatenate images
-        image = np.concatenate([hand_img, tool_img], axis=2)
-        image = np.concatenate([image, cutting_img], axis=2)
-        image = image.astype(np.float32) / 255.0
-        image = np.transpose(image, (2, 0, 1)) # (c, h, w)
-    
-        # load org images
-        org_img = cv2.imread(org_paths[i+j])
-        org_img = cv2.resize(org_img, (common.IMG_W, common.IMG_H))
-    
-        # make single batch
-        image = torch.tensor(image[np.newaxis, :, :], dtype=torch.int64) # tensor
-        image = image.to(device)
-        image_list.append(image)
-    image = torch.stack(image_list, dim=0)
+def forward(model, device, org_path):
+    # load hand image
+    hand_path = org_path.replace("org_imgs", "contour")
+    hand_img = cv2.imread(hand_path)
+    hand_img = cv2.resize(hand_img, (common.IMG_W, common.IMG_H))
+    hand_img = hand_img[:, :, 0] #(h, w)
+    hand_img = hand_img[:, :, np.newaxis] # (h, w, 1ch)
+
+    # load tool image
+    tool_path = org_path.replace("org_imgs", "tool_masks")
+    tool_img = cv2.imread(tool_path)
+    tool_img = cv2.resize(tool_img, (common.IMG_W, common.IMG_H))
+    tool_img = tool_img[:, :, 1] # (h, w)
+    tool_img = tool_img[:, :, np.newaxis] # (h, w, 1ch)
+
+    # load cutting_area image
+    cutting_path = org_path.replace("org_imgs", "cutting_area")
+    cutting_img = cv2.imread(cutting_path)
+    cutting_img = cv2.resize(cutting_img, (common.IMG_W, common.IMG_H))
+    cutting_img = cutting_img[:, :, 0] # (h, w)
+    cutting_img = cutting_img[:, :, np.newaxis] # (h, w, 1ch)
+
+    # concatenate images
+    image = np.concatenate([hand_img, tool_img], axis=2)
+    image = np.concatenate([image, cutting_img], axis=2)
+    image = image.astype(np.float32) / 255.0
+    image = np.transpose(image, (2, 0, 1)) # (c, h, w)
+
+    # load org images
+    org_img = cv2.imread(org_path)
+    org_img = cv2.resize(org_img, (common.IMG_W, common.IMG_H))
+
+    # make single batch
+    image = torch.tensor(image[np.newaxis, :, :], dtype=torch.int64) # tensor
+    image = image.to(device)
     with torch.no_grad():
         output = model(image) # (x, y)
 
@@ -71,9 +67,6 @@ if __name__ == '__main__':
                          num_output=2)
     elif args.network == "ResNet50LSTM":
         model = model.ResNet50LSTM(pretrained=False,
-                                   num_input_channel=args.input_ch, num_output=2)
-    elif args.network == "ResNet18LSTM":
-        model = model.ResNet18LSTM(pretrained=False,
                                    num_input_channel=args.input_ch, num_output=2)
     elif args.network =="LSTM":
         model = model.LSTM(pretrained=True, num_input_channel=args.input_ch,
@@ -102,8 +95,8 @@ if __name__ == '__main__':
         print("========== forward and save inferenced gaze points as csv ==========")
         for i, org_path in enumerate(org_paths):
             # inference
-            output = forward(model, device, org_paths, i*10)
-            output = output[0].cpu().numpy()
+            output = forward(model, device, org_path)
+            output = output.cpu().numpy()
 
             # save inferenced gaze as txt
             with open (common.INF_GAZE_CSV, "a") as f:

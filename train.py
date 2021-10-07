@@ -19,8 +19,6 @@ import model
 
 def trainer(train, model, optimizer, lossfunc):
     print("---------- Start Training ---------")
-    trainloader = torch.utils.data.DataLoader(
-            train, batch_size=args.batch_size, shuffle=False, num_workers=4)
 
     try:
         with tqdm(trainloader, ncols=100) as pbar:
@@ -36,8 +34,6 @@ def trainer(train, model, optimizer, lossfunc):
                 loss.backward()
                 optimizer.step()
                 train_loss += loss.item()
-        print("outputs : ", outputs)
-        print("labels : ", labels)
 
         return train_loss
 
@@ -46,8 +42,6 @@ def trainer(train, model, optimizer, lossfunc):
 
 def validater(test, model):
     print("---------- Start Testing ---------")
-    testloader = torch.utils.data.DataLoader(
-            test, batch_size=args.batch_size, shuffle=False, num_workers=4)
 
     try:
         valid_loss = 0.0
@@ -75,6 +69,8 @@ if __name__ == '__main__':
                         help="adapt batch size to machine's memory")
     parser.add_argument("--early_stopping", required=False,
                         help="if early stopping, add this argument")
+    parser.add_argument("--checkpoint", required=False,
+                        help="if retry learning, write model path")
     args = parser.parse_args()
 
     print("---------- Loading Data ----------")
@@ -95,6 +91,21 @@ if __name__ == '__main__':
         test = torch.utils.data.Subset(datas, list(range(train_size, datas.length)))
         model = model.ResNet50LSTM(pretrained=True, num_input_channel=args.input_ch,
                                    num_output=2) # output=(x, y)
+    elif args.network == "ResNet18LSTM":
+        train = torch.utils.data.Subset(datas, list(range(0, 80000)))
+        test = torch.utils.data.Subset(datas, list(range(80000, 100000)))
+        model = model.ResNet18LSTM(pretrained=True, num_input_channel=args.input_ch,
+                                   num_output=2) # output=(x, y)
+    elif args.network == "LSTM":
+        train = torch.utils.data.Subset(datas, list(range(0, train_size)))
+        test = torch.utils.data.Subset(datas, list(range(train_size, datas.length)))
+        model = model.LSTM(pretrained=True, num_input_channel=args.input_ch,
+                           num_output=2, batch_size=args.batch_size) # output=(x, y)
+
+    trainloader = torch.utils.data.DataLoader(
+            train, batch_size=args.batch_size, shuffle=False, num_workers=4)
+    testloader = torch.utils.data.DataLoader(
+            test, batch_size=args.batch_size, shuffle=False, num_workers=4)
 
     # set up GPU
     model, device = common.setup_device(model)
@@ -110,15 +121,22 @@ if __name__ == '__main__':
     # main
     loss_list = list()
     early_stopping = [np.inf, 5, 0]
+    if args.checkpoint:
+        checkpoint = torch.load(args.checkpoint)
+        start_epoch = checkpoint["epoch"]
+        model.load_state_dict(checkpoint["model_state_dict"])
+        optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+        loss_list = checkpoint["loss"]
+        print("reload model : ", start_epoch, " and restart learning")
     for epoch in range(100):
         try:
             # train
-            train_loss = trainer(train, model, optimizer, lossfunc)
+            train_loss = trainer(trainloader, model, optimizer, lossfunc)
             loss_list.append(train_loss)
 
             # test
             with torch.no_grad():
-                valid_loss = validater(test, model)
+                valid_loss = validater(testloader, model)
 
             # show loss and accuracy
             print("%d : train_loss : %.3f" % (epoch + 1, train_loss))
