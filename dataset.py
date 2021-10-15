@@ -20,7 +20,7 @@ class Datas():
     def __getitem__(self, idx):
         image_list = list()
         target_list = list()
-        for i in range(50):
+        for i in range(25):
             # load hand image
             hand_path = self.dataset[idx+i]["hand_path"]
             hand_img = cv2.imread(hand_path) # (h, w, c)

@@ -58,7 +58,7 @@ class ResNet18LSTM(nn.Module):
         # nn.LSTM(input_size, hidden_size, sequence_length)
         self.lstm = nn.LSTM(input_size=300, hidden_size=256, num_layers=3)
         self.fc2 = nn.Linear(256, 128)
-        self.fc3 = nn.Linear(128, 100)
+        self.fc3 = nn.Linear(128, 50)
 
     def forward(self, x):
         hidden = None

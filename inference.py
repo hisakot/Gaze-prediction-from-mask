@@ -13,7 +13,7 @@ import model
 
 def forward(model, device, org_paths, i):
     image_list = list()
-    for j in range(10):
+    for j in range(25):
         # load hand image
         hand_path = org_paths[i+j].replace("org_imgs", "contour")
         hand_img = cv2.imread(hand_path)

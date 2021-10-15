@@ -119,24 +119,32 @@ if __name__ == '__main__':
     writer = SummaryWriter(log_dir="./logs")
 
     # main
-    loss_list = list()
+    train_loss_list = list()
+    valid_loss_list = list()
     early_stopping = [np.inf, 5, 0]
     if args.checkpoint:
         checkpoint = torch.load(args.checkpoint)
         start_epoch = checkpoint["epoch"]
         model.load_state_dict(checkpoint["model_state_dict"])
         optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
-        loss_list = checkpoint["loss"]
-        print("reload model : ", start_epoch, " and restart learning")
+        train_loss_list = checkpoint["loss"]
+#         valid_loss_list = checkpoint["valid_loss_list"]
+        for i, train_loss in enumerate(train_loss_list):
+            writer.add_scalar("Train Loss", train_loss, i+1)
+        for i, valid_loss in enumerate(valid_loss_list):
+            writer.add_scalar("Valid Loss", valid_loss, i+1)
+        print("reload model : ", start_epoch, " and restart")
     for epoch in range(100):
+        epoch += start_epoch
         try:
             # train
             train_loss = trainer(trainloader, model, optimizer, lossfunc)
-            loss_list.append(train_loss)
+            train_loss_list.append(train_loss)
 
             # test
             with torch.no_grad():
                 valid_loss = validater(testloader, model)
+                valid_loss_list.append(valid_loss)
 
             # show loss and accuracy
             print("%d : train_loss : %.3f" % (epoch + 1, train_loss))
@@ -147,12 +155,13 @@ if __name__ == '__main__':
                 "epoch" : epoch + 1,
                 "model_state_dict" : model.state_dict(),
                 "optimizer_state_dict" : optimizer.state_dict(),
-                "loss" : loss_list
+                "train_loss_list" : train_loss_list,
+                "valid_loss_list" : valid_loss_list
                 }, "./models/" + str(epoch + 1))
 
             # tensorboard
             writer.add_scalar("Train Loss", train_loss, epoch + 1)
-            writer.add_scalar("Test Loss", valid_loss, epoch + 1)
+            writer.add_scalar("Valid Loss", valid_loss, epoch + 1)
 
             # early stopping #TODO
             if args.early_stopping:
